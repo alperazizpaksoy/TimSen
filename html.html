@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Timur — UI örnek (HTML/CSS/JS)</title>
+  <style>
+    :root{
+      --accent: #06b6d4;
+      --dark-bg: #070617;
+      --panel-bg: rgba(8,8,12,0.95);
+      --glass: rgba(255,255,255,0.04);
+      --text: #d6d8de;
+      --muted: #98a0ad;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#040306 0%, #12040a 70%);color:var(--text);}
+
+    /* Floating Timur icon */
+    .timur-button{
+      position:fixed;right:20px;bottom:18px;z-index:9999;
+      width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#111827,#0b1220);
+      box-shadow:0 10px 30px rgba(2,6,23,0.7);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(4px);
+      transition:transform .22s ease,opacity .2s ease;
+      border:1px solid rgba(255,255,255,0.04);
+    }
+    .timur-button:hover{transform:translateY(-6px)}
+    .timur-icon{width:40px;height:40px;background:conic-gradient(from 190deg,#ff3b3b,#ffb86b,#06b6d4);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#071018;font-weight:700}
+
+    /* Expanded panel */
+    .timur-panel{
+      position:fixed;right:20px;bottom:18px;z-index:9998;width:880px;height:520px;border-radius:12px;overflow:hidden;display:grid;grid-template-columns:360px 1fr;grid-template-rows:auto 1fr;background:linear-gradient(180deg, rgba(5,6,10,0.98), rgba(10,8,12,0.95));box-shadow:0 30px 80px rgba(2,6,23,0.7);border:1px solid rgba(255,255,255,0.04);
+      transform-origin:bottom right;opacity:0;pointer-events:none;transform:scale(.85) translateY(10px);
+      transition:all .28s cubic-bezier(.2,.9,.2,1);
+    }
+    .timur-panel.open{opacity:1;pointer-events:auto;transform:scale(1) translateY(0)}
+
+    /* Header */
+    .panel-header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.03)}
+    .panel-title{display:flex;gap:12px;align-items:center}
+    .panel-title .dot{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#0ea5a4,#0ea5a4);display:flex;align-items:center;justify-content:center;font-weight:700}
+    .panel-title h3{margin:0;font-size:16px}
+    .header-actions{display:flex;gap:8px;align-items:center}
+    .icon-btn{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,0.03);background:var(--glass)}
+
+    /* Left column: model/library */
+    .left-panel{padding:12px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);border-right:1px solid rgba(255,255,255,0.02);}
+    .model-search{display:flex;gap:8px;margin-bottom:10px}
+    .model-search input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:var(--text);}
+    .model-list{height:392px;overflow:auto;padding-right:6px}
+    .model-card{padding:10px;border-radius:8px;margin-bottom:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border:1px solid rgba(255,255,255,0.02);}
+    .model-card h4{margin:0 0 6px 0;font-size:13px}
+    .model-meta{font-size:12px;color:var(--muted)}
+
+    /* Right column: assistant area */
+    .right-panel{padding:12px;display:flex;flex-direction:column}
+    .assistant-grid{display:grid;grid-template-columns:1fr 220px;gap:12px;align-items:start}
+
+    .canvas-area{min-height:340px;border-radius:8px;border:1px dashed rgba(255,255,255,0.03);position:relative;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));overflow:hidden;padding:10px}
+    .wave{position:absolute;left:18px;top:50px;width:58%;height:70%;display:flex;align-items:center}
+    .wave svg{width:100%;height:100%;opacity:.55;filter:blur(0.6px)}
+
+    .portrait{position:absolute;right:10px;top:12px;width:200px;height:320px;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg,#0b1220,#06101a);display:flex;align-items:center;justify-content:center}
+    .portrait img{width:100%;height:100%;object-fit:cover;transition:transform .6s ease,opacity .4s ease}
+
+    .assistant-controls{display:flex;flex-direction:column;gap:8px}
+    .assistant-name{font-size:15px;margin-bottom:6px}
+    .assistant-actions{display:flex;gap:8px}
+    .btn{padding:8px 12px;border-radius:10px;border:none;cursor:pointer;background:var(--accent);color:#021018;font-weight:600}
+
+    /* Chat window (hidden by default, shown from bottom row) */
+    .chat-window{grid-column:1/-1;margin-top:10px;background:linear-gradient(180deg, rgba(10,11,15,0.9), rgba(6,8,12,0.9));border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:8px}
+    .messages{height:140px;overflow:auto;padding:6px;background:transparent;border-radius:6px}
+    .message{padding:8px 10px;border-radius:10px;max-width:72%;margin-bottom:8px}
+    .from-user{align-self:flex-end;background:linear-gradient(90deg,#0ea5a4,#06b6d4);color:#021018}
+    .from-assistant{align-self:flex-start;background:rgba(255,255,255,0.03);color:var(--text)}
+
+    .composer{display:flex;gap:8px;align-items:center}
+    .composer input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:var(--text)}
+    .mic{width:46px;height:46px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+    /* Assistant selection modal (simple) */
+    .modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);z-index:20000;background:var(--panel-bg);padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 40px 120px rgba(2,6,23,0.7);width:640px;opacity:0;pointer-events:none;transition:.18s ease}
+    .modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+    .modal-grid{display:grid;grid-template-columns:1fr 220px;gap:12px}
+    .assistant-card{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border:1px solid rgba(255,255,255,0.02);cursor:pointer}
+
+    /* small helper */
+    small{color:var(--muted)}
+
+    /* responsive */
+    @media(max-width:980px){.timur-panel{width:92%;height:78vh;left:4%;right:4%;bottom:20px;grid-template-columns:1fr} .assistant-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+  <!-- Floating button (initial) -->
+  <div class="timur-button" id="openBtn" title="Open Timur">
+    <div class="timur-icon">T</div>
+  </div>
+
+  <!-- Main panel -->
+  <div class="timur-panel" id="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <div class="dot">T</div>
+        <div>
+          <h3>Timur</h3>
+          <small>Local AI assistant — demo</small>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="icon-btn" id="openSelect">＋</div>
+        <div class="icon-btn" id="closeBtn">✕</div>
+      </div>
+    </div>
+
+    <div class="left-panel">
+      <div class="model-search">
+        <input id="searchModel" placeholder="Model / kaynak ara..." />
+        <div class="icon-btn" id="addModel">＋</div>
+      </div>
+      <div class="model-list" id="modelList">
+        <!-- Example entries -->
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="assistant-grid">
+        <div class="canvas-area">
+          <div class="wave" id="waveArea">
+            <!-- simple waveform using SVG -->
+            <svg viewBox="0 0 600 120" preserveAspectRatio="none">
+              <path id="wavePath" d="" fill="none" stroke="url(#g)" stroke-width="2" />
+              <defs>
+                <linearGradient id="g" x1="0%" x2="100%"><stop offset="0%" stop-color="#8EE7F9"/><stop offset="100%" stop-color="#225BFF"/></linearGradient>
+              </defs>
+            </svg>
+          </div>
+
+          <div class="portrait" id="portrait">
+            <img id="portraitImg" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='680'><rect width='100%' height='100%' fill='%23060b12'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='36' fill='%2376f0ff'>Timur</text></svg>" alt="portrait"/>
+          </div>
+        </div>
+
+        <div class="assistant-controls">
+          <div class="assistant-name">Seçili Asistan: <strong id="assistantName">—</strong></div>
+          <div class="assistant-actions">
+            <button class="btn" id="createBtn">Yeni Asistan Oluştur</button>
+            <button class="btn" id="selectBtn">Asistan Seç</button>
+            <button class="btn" id="saveBtn">Kaydet ve Bitir</button>
+          </div>
+
+          <small>Ekler sırasında fotoğraf animasyonu ve küçük değişimler gösterilecektir.</small>
+        </div>
+      </div>
+
+      <div class="chat-window" id="chat">
+        <div class="messages" id="messages">
+          <div class="message from-assistant">Merhaba! Ben Timur, nasıl yardımcı olabilirim?</div>
+        </div>
+        <div class="composer">
+          <input id="composerInput" placeholder="Mesajınızı yazın veya mikrofona basın..." />
+          <div class="mic" id="micBtn" title="Mikrofona komut ver">
+            🎤
+          </div>
+          <button class="btn" id="sendBtn">Send</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: assistant selector -->
+  <div class="modal" id="modal">
+    <h3>Asistan Seçimi</h3>
+    <div class="modal-grid">
+      <div>
+        <div class="assistant-card" data-name="Timur 1"> <strong>Timur 1</strong><div><small>Casual, hızlı yanıt</small></div></div>
+        <div class="assistant-card" data-name="Timur 2"> <strong>Timur 2</strong><div><small>Profesyonel, stratejik</small></div></div>
+        <div class="assistant-card" data-name="Timur 3"> <strong>Timur 3</strong><div><small>Kod ve araç odaklı</small></div></div>
+      </div>
+      <div>
+        <div style="padding:6px;border-radius:8px;background:rgba(255,255,255,0.01);height:100%;">
+          <h4>Önizleme</h4>
+          <div style="height:220px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center">Örnek konuşma / avatar</div>
+          <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end"><button class="btn" id="modalCancel">Vazgeç</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- small helper functions to populate the left model list
+    const modelList = document.getElementById('modelList');
+    const models = ['llama-3-small','vicuna-13b','local-embedder','timur-lite'];
+    models.forEach(m=>{
+      const el = document.createElement('div');el.className='model-card';el.innerHTML = `<h4>${m}</h4><div class='model-meta'>Özet bilgi • 512 tokens</div>`;modelList.appendChild(el);
+    });
+
+    // panel open/close
+    const panel = document.getElementById('panel');
+    const openBtn = document.getElementById('openBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    openBtn.addEventListener('click', ()=>{panel.classList.toggle('open')});
+    closeBtn.addEventListener('click', ()=>{panel.classList.remove('open')});
+
+    // modal selector
+    const modal = document.getElementById('modal');
+    document.getElementById('openSelect').addEventListener('click', ()=>{modal.classList.add('open')});
+    document.getElementById('modalCancel').addEventListener('click', ()=>{modal.classList.remove('open')});
+    document.querySelectorAll('.assistant-card').forEach(c=>{
+      c.addEventListener('click', ()=>{
+        const name = c.dataset.name;document.getElementById('assistantName').innerText = name;modal.classList.remove('open');
+        // animate portrait change
+        const portraitImg = document.getElementById('portraitImg');
+        portraitImg.style.opacity = 0;setTimeout(()=>{
+          // simple svg variant to avoid external images
+          portraitImg.src = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='680'><rect width='100%' height='100%' fill='%23060b12'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='36' fill='%23f0c27b'>${encodeURIComponent(name)}</text></svg>`;
+          portraitImg.style.transform = 'scale(.92)';
+        },260);
+        setTimeout(()=>{portraitImg.style.opacity = 1;portraitImg.style.transform='scale(1)';},360);
+      })
+    });
+
+    // Save & finish (simulate the "click Timur and finish" behavior from your mock)
+    document.getElementById('saveBtn').addEventListener('click', ()=>{
+      // small confirmation + close
+      const n = document.getElementById('assistantName').innerText;
+      if(!n || n==='—'){alert('Lütfen önce bir asistan seçin.');return}
+      alert('Asistan "'+n+'" kaydedildi.');
+      panel.classList.remove('open');
+    });
+
+    // waveform animation (fake using sine path)
+    const wavePath = document.getElementById('wavePath');
+    let t = 0;
+    function makeWave(amp, freq, phase){
+      const w = 600;const h = 120;let d='M0 '+(h/2)+' ';
+      for(let x=0;x<=w;x+=6){
+        const y = h/2 + Math.sin((x/20)+t*freq + phase) * (amp + Math.sin(t*.4)*6);
+        d += 'L'+x+' '+y+' ';
+      }
+      return d;
+    }
+    function animate(){
+      t += 0.06;
+      wavePath.setAttribute('d', makeWave(8,1.6,0));
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // simple chat send
+    const sendBtn = document.getElementById('sendBtn');
+    const comp = document.getElementById('composerInput');
+    const msgs = document.getElementById('messages');
+    sendBtn.addEventListener('click', ()=>{const v=comp.value.trim();if(!v) return;const u = document.createElement('div');u.className='message from-user';u.innerText = v;msgs.appendChild(u);comp.value='';msgs.scrollTop = msgs.scrollHeight;setTimeout(()=>{const a = document.createElement('div');a.className='message from-assistant';a.innerText = 'Simule yanıt: ' + v;msgs.appendChild(a);msgs.scrollTop = msgs.scrollHeight;},500);
+    });
+
+    // microphone button -> toggles fake listening and changes waveform amplitude
+    const micBtn = document.getElementById('micBtn');
+    let listening=false;
+    micBtn.addEventListener('click', ()=>{
+      listening = !listening; micBtn.style.background = listening? 'rgba(255,255,255,0.04)':'transparent'; micBtn.innerText = listening? '🔴':'🎤';
+      // briefly pulse the waveform
+      if(listening){let orig=1.6;let amp=18;let start = performance.now();const pulse = ()=>{let now=performance.now();let delta=(now-start)/1000; wavePath.setAttribute('d', makeWave(8 + Math.abs(Math.sin(delta*6))*10,1.6,0)); if(listening) requestAnimationFrame(pulse); else wavePath.setAttribute('d', makeWave(8,1.6,0));};requestAnimationFrame(pulse)}
+    });
+
+    // quick create: opens modal then preselects
+    document.getElementById('createBtn').addEventListener('click', ()=>{modal.classList.add('open');});
+    document.getElementById('selectBtn').addEventListener('click', ()=>{modal.classList.add('open');});
+
+    // add model button
+    document.getElementById('addModel').addEventListener('click', ()=>{const n = prompt('Model adı?'); if(!n) return; const el = document.createElement('div');el.className='model-card';el.innerHTML = `<h4>${n}</h4><div class='model-meta'>Kullanıcı ekledi • 256 tokens</div>`; modelList.prepend(el);
+    });
+
+    // small UX: close modal on esc
+    window.addEventListener('keydown',(e)=>{if(e.key==='Escape'){modal.classList.remove('open');panel.classList.remove('open');}})
+  </script>
+</body>
+</html>
